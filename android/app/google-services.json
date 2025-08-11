@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "158810976374",
+    "project_id": "carttracker-468419",
+    "storage_bucket": "carttracker-468419.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:158810976374:android:20a5e065bd58b9a8b26f57",
+        "android_client_info": {
+          "package_name": "com.carttracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "158810976374-ssr1kht2s4ulrupae1bbjvt1njk54o64.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.carttracker",
+            "certificate_hash": "3a1fa3136c96bf3d5fc26efdde3e284a2d4f6dd6"
+          }
+        },
+        {
+          "client_id": "158810976374-a39ppr1cu42v8sk0qmemsvmlprcc0m0l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf2CyjJ4-l6xMY2TsH15302qeBNpKCQbM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "158810976374-a39ppr1cu42v8sk0qmemsvmlprcc0m0l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
