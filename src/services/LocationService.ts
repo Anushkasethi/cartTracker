@@ -167,31 +167,19 @@ export const LocationService = {
       throw new Error('Location permission denied');
     }
 
-    // --- try 1: Fused provider (this is where some devices used to crash with null Task) ---
+    // --- Force LocationManager to avoid Google Play Services Task errors ---
+    console.log('📍 LocationService.getCurrentPosition: Using LocationManager for stability');
     try {
-      const pos1 = await getPosition({
+      const pos = await getPosition({
         enableHighAccuracy: highAccuracy,
-        timeout: opts?.timeoutMs ?? 12000,
+        timeout: opts?.timeoutMs ?? 15000,
         maximumAge: cacheMs,
-        showLocationDialog: true, // prompt to turn location ON
-        // forceLocationManager: false (default)
+        showLocationDialog: true,
+        forceLocationManager: true, // Force LocationManager to avoid Fused provider issues
       });
-      return toLocationData(pos1);
-    } catch (e1: any) {
-      // --- try 2: fallback to OS LocationManager (no Google Task involved) ---
-      if (opts?.disableFallback) throw this.formatLocationError(e1);
-      try {
-        const pos2 = await getPosition({
-          enableHighAccuracy: highAccuracy,
-          timeout: Math.max(15000, opts?.timeoutMs ?? 12000),
-          maximumAge: 0,            // force a fresh fix on fallback
-          showLocationDialog: true,
-          forceLocationManager: true,
-        });
-        return toLocationData(pos2);
-      } catch (e2: any) {
-        throw this.formatLocationError(e2);
-      }
+      return toLocationData(pos);
+    } catch (error: any) {
+      throw this.formatLocationError(error);
     }
   },
   
