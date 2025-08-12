@@ -26,7 +26,7 @@ export const LocationDisplay: React.FC<LocationDisplayProps> = ({ location }) =>
         </Text>
       </View>
 
-      <View style={cardStyles.row}>
+      {/* <View style={cardStyles.row}>
         <Text style={cardStyles.label}>Accuracy:</Text>
         <Text style={cardStyles.value}>
           {location.accuracy.toFixed(2)} meters
@@ -58,7 +58,7 @@ export const LocationDisplay: React.FC<LocationDisplayProps> = ({ location }) =>
             {location.heading.toFixed(2)}°
           </Text>
         </View>
-      )}
+      )} */}
 
       <View style={cardStyles.row}>
         <Text style={cardStyles.label}>Timestamp:</Text>

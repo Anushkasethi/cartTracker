@@ -1,35 +1,108 @@
-import { Platform, PermissionsAndroid } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
 
-// Configure geolocation
-Geolocation.setRNConfiguration({
-  skipPermissionRequests: false,
-  authorizationLevel: 'whenInUse',
-  enableBackgroundLocationUpdates: false,
-  locationProvider: 'auto',
-});
+import { PermissionsAndroid, Platform } from 'react-native';
+import Geolocation, { GeoPosition } from 'react-native-geolocation-service';
 
 export interface LocationData {
   latitude: number;
   longitude: number;
-  altitude: number | null;
-  accuracy: number;
-  altitudeAccuracy: number | null;
-  heading: number | null;
-  speed: number | null;
+  accuracy?: number | null;
+  altitude?: number | null;
+  heading?: number | null;
+  speed?: number | null;
   timestamp: number;
 }
 
-export interface LocationError {
-  code: number;
-  message: string;
+function toLocationData(pos: GeoPosition): LocationData {
+  const { coords, timestamp } = pos;
+  return {
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    accuracy: coords.accuracy,
+    altitude: coords.altitude ?? null,
+    heading: coords.heading ?? null,
+    speed: coords.speed ?? null,
+    timestamp,
+  };
+}
+  
+async function requestLocationPermissions(): Promise<boolean> {
+  console.log('📍 Requesting location permissions...');
+  
+  if (Platform.OS === 'ios') {
+    console.log('📍 iOS platform - permissions handled automatically');
+    return true;
+  }
+
+  console.log('📍 Android platform - requesting multiple permissions');
+  
+  const status = await PermissionsAndroid.requestMultiple([
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+  ]);
+
+  console.log('📍 Permission status received:', status);
+
+  const fine = status[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+  const coarse = status[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION];
+
+  const hasPermission = (
+    fine === PermissionsAndroid.RESULTS.GRANTED ||
+    coarse === PermissionsAndroid.RESULTS.GRANTED
+  );
+
+  console.log('📍 Final permission result:', { fine, coarse, hasPermission });
+
+  return hasPermission;
 }
 
-export class LocationService {
+function getPosition(options: Parameters<typeof Geolocation.getCurrentPosition>[2]) {
+  return new Promise<GeoPosition>((resolve, reject) => {
+    Geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+export const LocationService = {
+  /**
+   * Format coordinates for display
+   */
+  formatCoordinate(coord: number): string {
+    return typeof coord === 'number' ? coord.toFixed(6) : '';
+  },
+    
+  /**
+   * Format timestamp for display
+   */
+  formatTimestamp(timestamp: number): string {
+    return new Date(timestamp).toLocaleString();
+  },
+
+  /**
+   * Calculate distance between two coordinates (in meters)
+   */
+  calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  },
+
   /**
    * Request location permission on Android
    */
-  static async requestLocationPermission(): Promise<boolean> {
+  async requestLocationPermission(): Promise<boolean> {
     if (Platform.OS === 'android') {
       try {
         const granted = await PermissionsAndroid.request(
@@ -50,102 +123,12 @@ export class LocationService {
       }
     }
     return true; // iOS handles permissions automatically
-  }
-
-  /**
-   * Try to get location using cached/network data first
-   */
-  private static tryWithCachedLocation(): Promise<LocationData> {
-    return new Promise((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { coords, timestamp } = position;
-          resolve({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            altitude: coords.altitude,
-            accuracy: coords.accuracy,
-            altitudeAccuracy: coords.altitudeAccuracy,
-            heading: coords.heading,
-            speed: coords.speed,
-            timestamp,
-          });
-        },
-        (error) => {
-          reject(error);
-        },
-        {
-          enableHighAccuracy: false, // Use cached/network location first
-          timeout: 5000, // Shorter timeout for cached location
-          maximumAge: 120000, // Accept location up to 2 minutes old
-        }
-      );
-    });
-  }
-
-  /**
-   * Try to get high-accuracy GPS location
-   */
-  private static tryWithHighAccuracy(): Promise<LocationData> {
-    return new Promise((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { coords, timestamp } = position;
-          resolve({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            altitude: coords.altitude,
-            accuracy: coords.accuracy,
-            altitudeAccuracy: coords.altitudeAccuracy,
-            heading: coords.heading,
-            speed: coords.speed,
-            timestamp,
-          });
-        },
-        (error) => {
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000, // Longer timeout for GPS
-          maximumAge: 0, // Force fresh location
-        }
-      );
-    });
-  }
-
-  /**
-   * Get user's current position with fallback strategy
-   */
-  static async getCurrentPosition(): Promise<LocationData> {
-    // Request permission first on Android
-    if (Platform.OS === 'android') {
-      const hasPermission = await this.requestLocationPermission();
-      if (!hasPermission) {
-        throw new Error('Location permission denied. Please enable location access in settings.');
-      }
-    }
-
-    try {
-      // First try to get cached/network location quickly
-      return await this.tryWithCachedLocation();
-    } catch (cachedError) {
-      console.log('Cached location failed, trying GPS...', cachedError);
-      
-      try {
-        // If cached fails, try with high accuracy GPS
-        return await this.tryWithHighAccuracy();
-      } catch (gpsError: any) {
-        console.error('GPS location also failed:', gpsError);
-        throw this.formatLocationError(gpsError);
-      }
-    }
-  }
+  },
 
   /**
    * Format location error with user-friendly messages
    */
-  private static formatLocationError(error: any): Error {
+  formatLocationError(error: any): Error {
     let errorMessage = 'Unable to get location';
     
     switch (error?.code) {
@@ -163,91 +146,120 @@ export class LocationService {
     }
     
     return new Error(errorMessage);
-  }
+  },
 
   /**
-   * Watch user's position with continuous updates
+   * Get current position with:
+   * 1) Fused provider (normal path, allows cache)
+   * 2) Fallback to LocationManager if Fused fails (bypasses the null Task path)
    */
-  static watchPosition(
+  async getCurrentPosition(opts?: {
+    cacheMs?: number;          // how old a cached fix we allow (default 2 min)
+    highAccuracy?: boolean;    // default true
+    timeoutMs?: number;        // default 12s first try, 15s fallback
+    disableFallback?: boolean; // set true to skip LocationManager fallback
+  }): Promise<LocationData> {
+    const cacheMs = opts?.cacheMs ?? 120000; // 2 minutes
+    const highAccuracy = opts?.highAccuracy ?? true;
+
+    const hasPerm = await requestLocationPermissions();
+    if (!hasPerm) {
+      throw new Error('Location permission denied');
+    }
+
+    // --- try 1: Fused provider (this is where some devices used to crash with null Task) ---
+    try {
+      const pos1 = await getPosition({
+        enableHighAccuracy: highAccuracy,
+        timeout: opts?.timeoutMs ?? 12000,
+        maximumAge: cacheMs,
+        showLocationDialog: true, // prompt to turn location ON
+        // forceLocationManager: false (default)
+      });
+      return toLocationData(pos1);
+    } catch (e1: any) {
+      // --- try 2: fallback to OS LocationManager (no Google Task involved) ---
+      if (opts?.disableFallback) throw this.formatLocationError(e1);
+      try {
+        const pos2 = await getPosition({
+          enableHighAccuracy: highAccuracy,
+          timeout: Math.max(15000, opts?.timeoutMs ?? 12000),
+          maximumAge: 0,            // force a fresh fix on fallback
+          showLocationDialog: true,
+          forceLocationManager: true,
+        });
+        return toLocationData(pos2);
+      } catch (e2: any) {
+        throw this.formatLocationError(e2);
+      }
+    }
+  },
+  
+  /**
+   * Watch user's position with continuous updates.
+   * Returns an unsubscribe function.
+   */
+  async watchPosition(
     onSuccess: (location: LocationData) => void,
-    onError: (error: Error) => void,
+    onError?: (error: Error) => void,
     options?: {
       enableHighAccuracy?: boolean;
       timeout?: number;
       maximumAge?: number;
       distanceFilter?: number;
+      intervalMs?: number;
+      useLocationManager?: boolean; // if you want to always bypass fused for stability
     }
-  ): number {
+  ): Promise<number> {
+    console.log('📍 LocationService.watchPosition called with options:', options);
+    
+    // Request permissions first
+    const hasPerm = await requestLocationPermissions();
+    if (!hasPerm) {
+      const error = new Error('Location permission denied');
+      console.warn('📍 Permission denied, calling onError');
+      onError?.(error);
+      throw error;
+    }
+
+    console.log('📍 Permissions granted, starting watch');
+    
     const defaultOptions = {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
-      distanceFilter: 10, // Update every 10 meters
-      ...options,
+      enableHighAccuracy: options?.enableHighAccuracy ?? true,
+      timeout: options?.timeout ?? 15000,
+      maximumAge: options?.maximumAge ?? 0,
+      distanceFilter: options?.distanceFilter ?? 10, // Update every 10 meters
+      interval: options?.intervalMs ?? 5000,
+      fastestInterval: 3000,
+      showLocationDialog: true,
+      forceLocationManager: options?.useLocationManager ?? false,
     };
 
-    return Geolocation.watchPosition(
+    console.log('📍 Starting Geolocation.watchPosition with options:', defaultOptions);
+
+    const watchId = Geolocation.watchPosition(
       (position) => {
-        const { coords, timestamp } = position;
-        onSuccess({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          altitude: coords.altitude,
-          accuracy: coords.accuracy,
-          altitudeAccuracy: coords.altitudeAccuracy,
-          heading: coords.heading,
-          speed: coords.speed,
-          timestamp,
-        });
+        console.log('📍 Raw position received:', position);
+        const locationData = toLocationData(position);
+        console.log('📍 Converted location data:', locationData);
+        onSuccess(locationData);
       },
       (error) => {
-        onError(this.formatLocationError(error));
+        console.warn('📍 Geolocation error:', error);
+        onError?.(this.formatLocationError(error));
       },
       defaultOptions
     );
-  }
+
+    console.log('📍 Geolocation.watchPosition returned watchId:', watchId);
+    return watchId;
+  },
 
   /**
    * Stop watching position
    */
-  static clearWatch(watchId: number): void {
+  clearWatch(watchId: number): void {
     Geolocation.clearWatch(watchId);
-  }
+  },
+};
 
-  /**
-   * Format coordinates for display
-   */
-  static formatCoordinate(coord: number): string {
-    return coord.toFixed(6);
-  }
-
-  /**
-   * Format timestamp for display
-   */
-  static formatTimestamp(timestamp: number): string {
-    return new Date(timestamp).toLocaleString();
-  }
-
-  /**
-   * Calculate distance between two coordinates (in meters)
-   */
-  static calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  }
-}

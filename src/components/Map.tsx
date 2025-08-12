@@ -28,7 +28,7 @@ export const MapLocation: React.FC<LocationOnMapProps> = ({ location }) => {
         <Marker 
           coordinate={{ latitude, longitude }} 
           title="Current Location" 
-          description={`Accuracy: ${location.accuracy.toFixed(1)}m`}
+        //   description={`Accuracy: ${location.accuracy.toFixed(1)}m`}
         />
       </MapView>
     </View>

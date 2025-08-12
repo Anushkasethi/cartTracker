@@ -8,6 +8,7 @@ export interface User {
   userType: 'rider' | 'operator';
   createdAt: Date;
   isActive: boolean;
+  hasSelectedRole?: boolean;
 }
 
 export interface RideRequest {
@@ -85,7 +86,6 @@ class FirebaseService {
     const base: any = {
       uid: firebaseUser.uid,
       phoneNumber: firebaseUser.phoneNumber!, // Phone number is required
-      userType: 'rider',
       isActive: true,
       displayName: firebaseUser.displayName,
       updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -93,6 +93,8 @@ class FirebaseService {
     
     if (!snap.exists) {
       base.createdAt = firestore.FieldValue.serverTimestamp();
+      // Don't set userType on first creation - let user choose
+      base.hasSelectedRole = false;
     }
 
     await ref.set(base, { merge: true });
@@ -114,12 +116,26 @@ class FirebaseService {
         userType: data.userType ?? 'rider',
         createdAt: data?.createdAt?.toDate?.() || new Date(),
         isActive: data.isActive ?? true,
+        hasSelectedRole: data.hasSelectedRole ?? false,
       } as User;
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
     }
   }
+  async updateUserRole(uid: string, userType: 'rider' | 'operator'): Promise<void> {
+  try {
+    await firestore().collection('users').doc(uid).update({
+      userType,
+      hasSelectedRole: true,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`Role "${userType}" saved for user ${uid}`);
+  } catch (error) {
+    console.error('Error updating role:', error);
+    throw error;
+  }
+}
 
   async signOut(): Promise<void> {
     try {

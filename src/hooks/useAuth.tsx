@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import auth from '@react-native-firebase/auth';
 import { firebaseService, User } from '../services/FirebaseService';
-
 interface AuthState {
   user: User | null;
   loading: boolean;
@@ -84,11 +83,27 @@ export const useAuth = () => {
     }
   };
 
+  const refreshUser = async (): Promise<void> => {
+    const currentUser = auth().currentUser;
+    if (currentUser) {
+      try {
+        const user = await firebaseService.getCurrentUser();
+        setAuthState(prev => ({
+          ...prev,
+          user,
+        }));
+      } catch (error) {
+        console.error('Error refreshing user data:', error);
+      }
+    }
+  };
+
   return {
     ...authState,
     otpSent,
     startPhoneSignIn,
     confirmCode,
     signOut,
+    refreshUser,
   };
 };

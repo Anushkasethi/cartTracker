@@ -19,7 +19,11 @@ export const useLocation = (): UseLocationReturn => {
     setError(null);
 
     try {
-      const position = await LocationService.getCurrentPosition();
+      const position = await LocationService.getCurrentPosition({
+      cacheMs: 120000,          // allow cached fix up to 2 min
+      highAccuracy: true,
+      timeoutMs: 12000,
+    });
       setLocation(position);
     } catch (err: any) {
       const errorMessage = err.message || 'Unable to get location';
