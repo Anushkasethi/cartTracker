@@ -20,14 +20,17 @@ export const OperatorMap = ({
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   } : {
-    latitude: 28.284300028719418, longitude: 77.067064776886228, latitudeDelta: 0.1, longitudeDelta: 0.1 
+    latitude: 28.284204495987126,
+    longitude: 77.06711518388234,
+    latitudeDelta: 0.1,
+    longitudeDelta: 0.1
   };
 
   return (
     <MapView 
       style={{ height: 380, borderRadius: 12 }} 
       region={region}
-      animateToRegion={true}
+      // animateToRegion={true}
     >
       {myLocation && <Marker coordinate={myLocation} title="You (Operator)" pinColor="blue" />}
 

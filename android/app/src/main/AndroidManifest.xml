@@ -16,7 +16,7 @@ package="com.carttracker">
       android:supportsRtl="true">
       <meta-data
       android:name="com.google.android.geo.API_KEY"
-      android:value="AIzaSyCzu4qrj6Wg9jYBfcLOfPl6QXVcAsL8-JY" />
+      android:value="${API_KEY}" />
 
       <activity
         android:name=".MainActivity"

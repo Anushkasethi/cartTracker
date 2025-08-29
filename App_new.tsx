@@ -96,7 +96,7 @@ const App: React.FC = () => {
                 </Text>
               </View>
 
-              <View style={styles.locationItem}>
+              {/* <View style={styles.locationItem}>
                 <Text style={styles.locationLabel}>Accuracy:</Text>
                 <Text style={styles.locationValue}>
                   {location.accuracy.toFixed(2)} meters
@@ -128,7 +128,7 @@ const App: React.FC = () => {
                     {location.heading.toFixed(2)}°
                   </Text>
                 </View>
-              )}
+              )} */}
 
               <View style={styles.locationItem}>
                 <Text style={styles.locationLabel}>Timestamp:</Text>

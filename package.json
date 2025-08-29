@@ -18,6 +18,7 @@
     "firebase": "^12.1.0",
     "react": "19.1.0",
     "react-native": "0.80.2",
+    "react-native-config": "^1.5.7",
     "react-native-dotenv": "^3.4.11",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-maps": "^1.25.0",
